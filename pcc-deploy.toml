@@ -1,0 +1,7 @@
+agent_name = "pipecat-twilio-receptionist"
+secret_set = "pipecat-twilio-receptionist-secrets"
+agent_profile = "agent-1x"
+
+[scaling]
+min_agents = 0
+max_agents = 5
