@@ -1,7 +1,7 @@
 # Pipecat Cloud Twilio Receptionist Template
 
 A small, fully code-managed Python voice agent for Pipecat Cloud and Twilio. Fork it,
-configure `.env`, deploy it, and point a Twilio number at the agent. See
+configure `.env`, then run one command to deploy the agent and connect the number. See
 [Architecture](docs/architecture.md) for the complete system in one diagram.
 
 ## Included workflow
@@ -22,15 +22,23 @@ The workflow is ordinary Python in `receptionist/`. There is no visual workflow 
 - OpenRouter for the language model
 - Resend for email
 
-## Configure
+## One-shot setup
 
 ```bash
 cp .env.example .env
-uv sync
+${EDITOR:-nano} .env
+./setup
 ```
 
-Fill every value in `.env`. Change `agent_name` and `secret_set` in `pcc-deploy.toml`
-before deploying your own copy.
+The setup validates the configuration and Twilio number before changing anything. It then:
+
+1. uploads only the runtime secrets to Pipecat Cloud;
+2. builds and deploys `PIPECAT_AGENT_NAME` in `PIPECAT_ORGANIZATION`;
+3. removes the selected number from an old SIP trunk, if necessary;
+4. configures the number to stream calls to the deployed agent.
+
+It never writes credentials to tracked files. Running `./setup` again updates the existing
+deployment and route.
 
 ## Check
 
@@ -41,36 +49,9 @@ uv run pyright
 uv run python -m unittest discover -s tests
 ```
 
-## Deploy
-
-```bash
-uv run pipecat cloud auth login
-uv run pipecat cloud secrets set pipecat-twilio-receptionist-secrets --file .env
-uv run pipecat cloud deploy --yes --build-dir .
-uv run pipecat cloud organizations list
-```
-
 With `min_agents = 0`, the service scales to zero between calls.
 
-## Connect Twilio
-
-Create a TwiML Bin and replace `AGENT_NAME.ORGANIZATION_NAME`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <Stream url="wss://api.pipecat.daily.co/ws/twilio">
-      <Parameter
-        name="_pipecatCloudServiceHost"
-        value="AGENT_NAME.ORGANIZATION_NAME"
-      />
-    </Stream>
-  </Connect>
-</Response>
-```
-
-Assign the TwiML Bin to the Twilio number under **A call comes in**. For local testing:
+For local testing:
 
 ```bash
 uv run bot.py -t twilio -x YOUR_NGROK_HOST
