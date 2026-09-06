@@ -25,6 +25,7 @@ class SetupSettings(Settings):
     pipecat_agent_name: str = Field(pattern=r"^[a-z0-9][a-z0-9-]*$")
     pipecat_organization: str = Field(pattern=r"^[a-z0-9][a-z0-9-]*$")
     pipecat_region: str = "us-west"
+    pipecat_min_agents: int = Field(default=0, ge=0, le=5)
     twilio_phone_number: E164Phone
 
 
@@ -34,6 +35,9 @@ def _runtime_secrets(settings: SetupSettings) -> dict[str, str]:
         "DEEPGRAM_VOICE": settings.deepgram_voice,
         "OPENROUTER_API_KEY": settings.openrouter_api_key,
         "OPENROUTER_MODEL": settings.openrouter_model,
+        "LLM_TEMPERATURE": str(settings.llm_temperature),
+        "LLM_MAX_COMPLETION_TOKENS": str(settings.llm_max_completion_tokens),
+        "USER_TURN_STOP_TIMEOUT": str(settings.user_turn_stop_timeout),
         "TWILIO_ACCOUNT_SID": settings.twilio_account_sid,
         "TWILIO_API_KEY": settings.twilio_api_key,
         "TWILIO_API_SECRET": settings.twilio_api_secret,
@@ -96,7 +100,7 @@ def _run_pipecat(settings: SetupSettings, secrets_file: Path) -> None:
             "--profile",
             "agent-1x",
             "--min-agents",
-            "0",
+            str(settings.pipecat_min_agents),
             "--max-agents",
             "5",
             "--yes",

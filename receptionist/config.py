@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     deepgram_voice: str = "aura-2-helena-en"
     openrouter_api_key: str = Field(min_length=1)
     openrouter_model: str = "google/gemini-2.5-flash-lite"
+    llm_temperature: float = Field(default=0.2, ge=0, le=2)
+    llm_max_completion_tokens: int = Field(default=250, ge=1, le=1000)
+    user_turn_stop_timeout: float = Field(default=0.8, gt=0, le=5)
 
     twilio_account_sid: str = Field(pattern=r"^AC[0-9a-f]{32}$")
     twilio_api_key: str = Field(pattern=r"^SK[0-9a-f]{32}$")

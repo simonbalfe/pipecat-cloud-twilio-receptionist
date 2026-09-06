@@ -50,6 +50,9 @@ uv run python -m unittest discover -s tests
 ```
 
 With `min_agents = 0`, the service scales to zero between calls.
+Set `PIPECAT_MIN_AGENTS=1` to remove the roughly 9-second platform cold start; this keeps
+one agent running and adds idle hosting cost. Warm conversational turns use an 800 ms
+maximum stop wait plus bounded, low-temperature LLM responses.
 
 For local testing:
 

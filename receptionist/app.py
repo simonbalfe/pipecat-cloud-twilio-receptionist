@@ -66,12 +66,17 @@ async def _run_bot(
         settings=OpenRouterLLMService.Settings(
             model=settings.openrouter_model,
             system_instruction=_system_instruction(settings),
+            temperature=settings.llm_temperature,
+            max_completion_tokens=settings.llm_max_completion_tokens,
         ),
     )
     context = LLMContext()
     user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
         context,
-        user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
+        user_params=LLMUserAggregatorParams(
+            vad_analyzer=SileroVADAnalyzer(),
+            user_turn_stop_timeout=settings.user_turn_stop_timeout,
+        ),
     )
     worker = PipelineWorker(
         Pipeline(
