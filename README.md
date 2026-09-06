@@ -20,7 +20,7 @@ The workflow is ordinary Python in `receptionist/`. There is no visual workflow 
 - Twilio Programmable Voice number
 - Deepgram for speech-to-text and text-to-speech
 - OpenRouter for the language model
-- Resend for email
+- Cloudflare Email Service with an onboarded sending domain
 
 ## One-shot setup
 
@@ -39,6 +39,10 @@ The setup validates the configuration and Twilio number before changing anything
 
 It never writes credentials to tracked files. Running `./setup` again updates the existing
 deployment and route.
+
+The Cloudflare token needs `Email Sending Write` for `CLOUDFLARE_ACCOUNT_ID`.
+`EMAIL_FROM` must use an onboarded sending domain; verify `EMAIL_TO` in Cloudflare to send
+notifications free on any Workers plan.
 
 ## Check
 

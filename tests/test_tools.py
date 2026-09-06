@@ -10,7 +10,7 @@ from receptionist.tools import CallTools, Enquiry
 class CallToolsTest(unittest.TestCase):
     def test_enquiry_tool_uses_enquiry_fields(self) -> None:
         tools = CallTools(
-            email=EmailSender("test", "from@example.com", "to@example.com"),
+            email=EmailSender("test", "0" * 32, "from@example.com", "to@example.com"),
             caller_phone="+447700900000",
             worker=cast(PipelineWorker, object()),
             surveyor_message="Test",

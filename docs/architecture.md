@@ -7,7 +7,7 @@ Caller
   → Pipecat Cloud agent
       → business hours: Twilio redirects to the owner
       → after hours: Deepgram STT → OpenRouter LLM → Deepgram TTS
-      → completed enquiry: Resend email
+      → completed enquiry: Cloudflare Email Service
 ```
 
 `bot.py` is the process entry point. `receptionist/app.py` assembles the Pipecat pipeline

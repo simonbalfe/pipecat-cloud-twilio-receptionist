@@ -1,6 +1,9 @@
+import logging
 from dataclasses import dataclass
 
 import aiohttp
+
+logger = logging.getLogger(__name__)
 
 
 class EmailDeliveryError(RuntimeError):
@@ -15,15 +18,19 @@ class Email:
 
 @dataclass(frozen=True)
 class EmailSender:
-    api_key: str
+    api_token: str
+    account_id: str
     sender: str
     recipient: str
 
     async def send(self, email: Email) -> None:
-        headers = {"authorization": f"Bearer {self.api_key}", "content-type": "application/json"}
+        headers = {
+            "authorization": f"Bearer {self.api_token}",
+            "content-type": "application/json",
+        }
         payload = {
             "from": self.sender,
-            "to": [self.recipient],
+            "to": self.recipient,
             "subject": email.subject,
             "text": email.text,
         }
@@ -32,10 +39,16 @@ class EmailSender:
             async with (
                 aiohttp.ClientSession(timeout=timeout) as session,
                 session.post(
-                    "https://api.resend.com/emails", headers=headers, json=payload
+                    "https://api.cloudflare.com/client/v4/accounts/"
+                    f"{self.account_id}/email/sending/send",
+                    headers=headers,
+                    json=payload,
                 ) as response,
             ):
                 if response.status >= 300:
-                    raise EmailDeliveryError(f"Resend returned HTTP {response.status}")
+                    detail = (await response.text())[:500]
+                    raise EmailDeliveryError(
+                        f"Cloudflare Email Sending returned HTTP {response.status}: {detail}"
+                    )
         except (TimeoutError, aiohttp.ClientError) as error:
-            raise EmailDeliveryError("Resend request failed") from error
+            raise EmailDeliveryError("Cloudflare Email Sending request failed") from error

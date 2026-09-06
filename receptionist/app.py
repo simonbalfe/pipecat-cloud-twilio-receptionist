@@ -101,7 +101,12 @@ async def _run_bot(
         ),
     )
     tools = CallTools(
-        email=EmailSender(settings.resend_api_key, settings.email_from, settings.email_to),
+        email=EmailSender(
+            settings.cloudflare_api_token,
+            settings.cloudflare_account_id,
+            settings.email_from,
+            settings.email_to,
+        ),
         caller_phone=caller_phone,
         worker=worker,
         surveyor_message=settings.surveyor_message,

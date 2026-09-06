@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import cast
@@ -10,6 +11,8 @@ from pipecat.services.llm_service import FunctionCallParams
 from pydantic import BaseModel, Field, ValidationError
 
 from receptionist.email import Email, EmailDeliveryError, EmailSender
+
+logger = logging.getLogger(__name__)
 
 
 class Enquiry(BaseModel):
@@ -76,6 +79,7 @@ class CallTools:
                 )
             )
         except EmailDeliveryError:
+            logger.exception("Could not send surveyor email")
             await params.result_callback({"status": "email_failed"})
             return
         await params.result_callback(
@@ -102,6 +106,7 @@ class CallTools:
                 )
             )
         except EmailDeliveryError:
+            logger.exception("Could not send property enquiry email")
             await params.result_callback({"status": "email_failed"})
             return
         await params.result_callback({"status": "sent"})
