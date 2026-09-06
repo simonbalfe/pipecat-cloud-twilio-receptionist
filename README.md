@@ -8,7 +8,7 @@ configure `.env`, then run one command to deploy the agent and connect the numbe
 
 1. During configured business hours, redirect the Twilio call to `OWNER_PHONE`.
 2. Outside business hours, ask whether the caller is a surveyor.
-3. Surveyors hear `SURVEYOR_MESSAGE`; the call is emailed to `EMAIL_TO`.
+3. Surveyors leave a message, which is emailed to `EMAIL_TO`.
 4. Other callers provide the property type, required service, and address; the enquiry is emailed to `EMAIL_TO`.
 5. If the owner redirect request fails, fall back to the AI flow.
 

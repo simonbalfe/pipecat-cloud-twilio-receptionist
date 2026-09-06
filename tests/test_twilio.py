@@ -1,14 +1,22 @@
 import unittest
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from pipecat.serializers.twilio import TwilioFrameSerializer
-
-from receptionist.twilio import create_twilio_serializer
+from receptionist.twilio import TwilioCalls
 
 
-class TwilioTransportTest(unittest.TestCase):
-    def test_serializer_does_not_require_primary_auth_token(self) -> None:
-        serializer = create_twilio_serializer("MZtest", "CAtest")
-        self.assertIsInstance(serializer, TwilioFrameSerializer)
+class TwilioCallsTest(unittest.IsolatedAsyncioTestCase):
+    async def test_reads_caller_number(self) -> None:
+        response = MagicMock(status=200)
+        response.json = AsyncMock(return_value={"from": "+447700900000"})
+        response.__aenter__.return_value = response
+        session = MagicMock()
+        session.__aenter__.return_value = session
+        session.request.return_value = response
+
+        with patch("receptionist.twilio.aiohttp.ClientSession", return_value=session):
+            caller = await TwilioCalls("account", "key", "secret").caller_phone("CA123")
+
+        self.assertEqual(caller, "+447700900000")
 
 
 if __name__ == "__main__":

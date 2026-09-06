@@ -39,7 +39,6 @@ class Settings(BaseSettings):
     business_opens: time = time(9)
     business_closes: time = time(17)
     owner_phone: E164Phone
-    surveyor_message: str = Field(min_length=1)
 
     cloudflare_api_token: str = Field(min_length=1)
     cloudflare_account_id: str = Field(pattern=r"^[0-9a-f]{32}$")

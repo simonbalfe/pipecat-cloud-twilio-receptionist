@@ -21,27 +21,31 @@ class Enquiry(BaseModel):
     address: str = Field(min_length=1)
 
 
+class SurveyorMessage(BaseModel):
+    message: str = Field(min_length=1)
+
+
 @dataclass(frozen=True)
 class CallTools:
     email: EmailSender
     caller_phone: str
     worker: PipelineWorker
-    surveyor_message: str
 
     def schema(self) -> ToolsSchema:
         enquiry_schema = Enquiry.model_json_schema()
         properties = cast(dict[str, object], enquiry_schema["properties"])
         required = cast(list[str], enquiry_schema["required"])
+        surveyor_schema = SurveyorMessage.model_json_schema()
         return ToolsSchema(
             standard_tools=[
                 FunctionSchema(
                     name="notify_surveyor_call",
                     description=(
-                        "Send the surveyor-call email after the caller confirms they are a "
-                        "surveyor and agrees to hear the surveyor message."
+                        "Send the surveyor's message after they have said what they want passed "
+                        "to the office."
                     ),
-                    properties={},
-                    required=[],
+                    properties=cast(dict[str, object], surveyor_schema["properties"]),
+                    required=cast(list[str], surveyor_schema["required"]),
                 ),
                 FunctionSchema(
                     name="submit_property_enquiry",
@@ -70,21 +74,23 @@ class CallTools:
 
     async def notify_surveyor_call(self, params: FunctionCallParams) -> None:
         try:
+            surveyor = SurveyorMessage.model_validate(dict(params.arguments))
+        except ValidationError:
+            await params.result_callback({"status": "invalid_message"})
+            return
+
+        try:
             await self.email.send(
                 Email(
                     subject="Surveyor called the receptionist",
-                    text=(
-                        f"Caller: {self.caller_phone}\n\nMessage provided:\n{self.surveyor_message}"
-                    ),
+                    text=f"Caller: {self.caller_phone}\n\nMessage:\n{surveyor.message}",
                 )
             )
         except EmailDeliveryError:
             logger.exception("Could not send surveyor email")
             await params.result_callback({"status": "email_failed"})
             return
-        await params.result_callback(
-            {"status": "sent", "message_to_read_verbatim": self.surveyor_message}
-        )
+        await params.result_callback({"status": "sent"})
 
     async def submit_property_enquiry(self, params: FunctionCallParams) -> None:
         try:

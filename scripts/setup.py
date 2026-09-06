@@ -47,7 +47,6 @@ def _runtime_secrets(settings: SetupSettings) -> dict[str, str]:
         "BUSINESS_OPENS": settings.business_opens.isoformat(timespec="minutes"),
         "BUSINESS_CLOSES": settings.business_closes.isoformat(timespec="minutes"),
         "OWNER_PHONE": settings.owner_phone,
-        "SURVEYOR_MESSAGE": settings.surveyor_message,
         "CLOUDFLARE_API_TOKEN": settings.cloudflare_api_token,
         "CLOUDFLARE_ACCOUNT_ID": settings.cloudflare_account_id,
         "EMAIL_FROM": settings.email_from,

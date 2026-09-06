@@ -31,8 +31,17 @@ from receptionist.twilio import TwilioCallError, TwilioCalls, create_twilio_seri
 logger = logging.getLogger(__name__)
 
 
-def _caller_phone(runner_args: RunnerArguments) -> str:
-    return (runner_args.call_data.from_number if runner_args.call_data else None) or "unknown"
+async def _caller_phone(runner_args: RunnerArguments, twilio: TwilioCalls) -> str:
+    call_data = runner_args.call_data
+    if call_data and call_data.from_number:
+        return call_data.from_number
+    if not call_data or not call_data.call_id:
+        return "unknown"
+    try:
+        return await twilio.caller_phone(call_data.call_id)
+    except TwilioCallError:
+        logger.exception("Could not retrieve caller number")
+        return "unknown"
 
 
 def _system_instruction(settings: Settings) -> str:
@@ -41,9 +50,9 @@ def _system_instruction(settings: Settings) -> str:
             f"You are the concise after-hours receptionist for {settings.business_name}.",
             "Follow this exact flow:",
             "1. Ask whether the caller is a surveyor. Ask nothing else yet.",
-            "2. If yes, ask whether they are ready to hear the surveyor message.",
-            "Once they agree, call notify_surveyor_call. Read message_to_read_verbatim ",
-            "exactly, say goodbye, then call end_call.",
+            "2. If yes, ask what message they would like you to pass on.",
+            "Once they answer, call notify_surveyor_call with their message, confirm it will be ",
+            "passed to the office, say goodbye, then call end_call.",
             "3. If no, collect one item at a time: property type, service required, then ",
             "full property address. Confirm them, call submit_property_enquiry, say the ",
             "office will respond, then call end_call.",
@@ -60,7 +69,12 @@ async def _run_bot(
     runner_args: RunnerArguments,
     settings: Settings,
 ) -> None:
-    caller_phone = _caller_phone(runner_args)
+    twilio = TwilioCalls(
+        settings.twilio_account_sid,
+        settings.twilio_api_key,
+        settings.twilio_api_secret,
+    )
+    caller_phone = await _caller_phone(runner_args, twilio)
     llm = OpenRouterLLMService(
         api_key=settings.openrouter_api_key,
         settings=OpenRouterLLMService.Settings(
@@ -109,18 +123,12 @@ async def _run_bot(
         ),
         caller_phone=caller_phone,
         worker=worker,
-        surveyor_message=settings.surveyor_message,
     )
     context.set_tools(tools.schema())
     tools.register(llm.register_function)
     ai_start_lock = asyncio.Lock()
     ai_started = False
     call_sid = runner_args.call_data.call_id if runner_args.call_data else None
-    twilio = TwilioCalls(
-        settings.twilio_account_sid,
-        settings.twilio_api_key,
-        settings.twilio_api_secret,
-    )
 
     async def start_ai() -> None:
         nonlocal ai_started
