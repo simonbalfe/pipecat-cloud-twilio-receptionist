@@ -1,10 +1,19 @@
 from dataclasses import dataclass
 
 import aiohttp
+from pipecat.serializers.twilio import TwilioFrameSerializer
 
 
 class TwilioCallError(RuntimeError):
     pass
+
+
+def create_twilio_serializer(stream_sid: str, call_sid: str | None) -> TwilioFrameSerializer:
+    return TwilioFrameSerializer(
+        stream_sid=stream_sid,
+        call_sid=call_sid,
+        params=TwilioFrameSerializer.InputParams(auto_hang_up=False),
+    )
 
 
 @dataclass(frozen=True)

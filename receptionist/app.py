@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import cast
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.frames.frames import LLMRunFrame
@@ -10,8 +11,8 @@ from pipecat.processors.aggregators.llm_response_universal import (
     LLMContextAggregatorPair,
     LLMUserAggregatorParams,
 )
-from pipecat.runner.types import RunnerArguments
-from pipecat.runner.utils import create_transport  # pyright: ignore[reportUnknownVariableType]
+from pipecat.runner.types import CallData, RunnerArguments, WebSocketRunnerArguments
+from pipecat.runner.utils import parse_telephony_websocket
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.deepgram.tts import DeepgramTTSService
 from pipecat.services.openrouter.llm import OpenRouterLLMService
@@ -25,7 +26,7 @@ from receptionist.config import Settings, get_settings
 from receptionist.email import EmailSender
 from receptionist.hours import is_business_open
 from receptionist.tools import CallTools
-from receptionist.twilio import TwilioCallError, TwilioCalls
+from receptionist.twilio import TwilioCallError, TwilioCalls, create_twilio_serializer
 
 logger = logging.getLogger(__name__)
 
@@ -161,10 +162,21 @@ async def _run_bot(
 
 async def bot(runner_args: RunnerArguments) -> None:
     settings = get_settings()
-    transport = await create_transport(
-        runner_args,
-        {"twilio": lambda: FastAPIWebsocketParams(audio_in_enabled=True, audio_out_enabled=True)},
+    if not isinstance(runner_args, WebSocketRunnerArguments):
+        raise TypeError("Twilio WebSocket runner required")
+    transport_type, call_data = cast(
+        tuple[str, CallData], await parse_telephony_websocket(runner_args.websocket)
     )
-    if not isinstance(transport, FastAPIWebsocketTransport):
+    if transport_type != "twilio" or not call_data.stream_id:
         raise TypeError("Twilio WebSocket transport required")
+    runner_args.transport_type = transport_type
+    runner_args.call_data = call_data
+    transport = FastAPIWebsocketTransport(
+        websocket=runner_args.websocket,
+        params=FastAPIWebsocketParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            serializer=create_twilio_serializer(call_data.stream_id, call_data.call_id),
+        ),
+    )
     await _run_bot(transport, runner_args, settings)
