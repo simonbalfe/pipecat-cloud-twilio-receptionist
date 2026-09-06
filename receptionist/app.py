@@ -129,7 +129,7 @@ async def _run_bot(
         _event_transport: FastAPIWebsocketTransport, _client: object
     ) -> None:
         logger.info("caller connected", extra={"caller": caller_phone})
-        if not is_business_open(settings):
+        if not is_business_open(settings.business_hours):
             await start_ai()
             return
         if not call_sid:

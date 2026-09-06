@@ -1,40 +1,36 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
-from receptionist.config import Settings
-from receptionist.hours import is_business_open
+from receptionist.hours import BusinessHours, is_business_open
 
 
-def settings() -> Settings:
-    return Settings.model_validate(
-        {
-            "deepgram_api_key": "test",
-            "deepgram_voice": "test",
-            "openrouter_api_key": "test",
-            "twilio_account_sid": f"AC{'0' * 32}",
-            "twilio_api_key": f"SK{'0' * 32}",
-            "twilio_api_secret": "test",
-            "owner_phone": "+447700900000",
-            "surveyor_message": "Test message",
-            "resend_api_key": "test",
-            "email_from": "test@example.com",
-            "email_to": "office@example.com",
-        }
+def business_hours() -> BusinessHours:
+    return BusinessHours(
+        timezone=ZoneInfo("Europe/London"),
+        weekdays=frozenset(range(5)),
+        opens=time(9),
+        closes=time(17),
     )
 
 
 class BusinessHoursTest(unittest.TestCase):
     def test_weekday_open_boundary(self) -> None:
-        config = settings()
+        hours = business_hours()
         zone = ZoneInfo("Europe/London")
-        self.assertTrue(is_business_open(config, datetime(2026, 9, 7, 9, 0, tzinfo=zone)))
-        self.assertFalse(is_business_open(config, datetime(2026, 9, 7, 17, 0, tzinfo=zone)))
+        self.assertTrue(is_business_open(hours, datetime(2026, 9, 7, 9, 0, tzinfo=zone)))
+        self.assertFalse(is_business_open(hours, datetime(2026, 9, 7, 17, 0, tzinfo=zone)))
 
     def test_weekend_is_closed(self) -> None:
-        config = settings()
+        hours = business_hours()
         zone = ZoneInfo("Europe/London")
-        self.assertFalse(is_business_open(config, datetime(2026, 9, 6, 12, 0, tzinfo=zone)))
+        self.assertFalse(is_business_open(hours, datetime(2026, 9, 6, 12, 0, tzinfo=zone)))
+
+    def test_invalid_schedule_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            BusinessHours(ZoneInfo("Europe/London"), frozenset(), time(9), time(17))
+        with self.assertRaises(ValueError):
+            BusinessHours(ZoneInfo("Europe/London"), frozenset(range(5)), time(17), time(9))
 
 
 if __name__ == "__main__":

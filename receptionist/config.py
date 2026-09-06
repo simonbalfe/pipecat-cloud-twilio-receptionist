@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import AfterValidator, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .hours import BusinessHours
+
 
 def _e164(value: str) -> str:
     if not value.startswith("+") or not value[1:].isdigit() or not 8 <= len(value[1:]) <= 15:
@@ -49,18 +51,19 @@ class Settings(BaseSettings):
             raise ValueError(f"unknown timezone: {value}") from error
         return value
 
-    @field_validator("business_weekdays")
-    @classmethod
-    def valid_weekdays(cls, value: frozenset[int]) -> frozenset[int]:
-        if not value or not value <= set(range(7)):
-            raise ValueError("must contain weekday numbers from 0 (Monday) to 6 (Sunday)")
-        return value
-
     @model_validator(mode="after")
-    def closes_after_open(self) -> Self:
-        if self.business_closes <= self.business_opens:
-            raise ValueError("must be later than BUSINESS_OPENS")
+    def valid_business_hours(self) -> Self:
+        _ = self.business_hours
         return self
+
+    @property
+    def business_hours(self) -> BusinessHours:
+        return BusinessHours(
+            timezone=ZoneInfo(self.business_timezone),
+            weekdays=self.business_weekdays,
+            opens=self.business_opens,
+            closes=self.business_closes,
+        )
 
 
 @lru_cache(maxsize=1)

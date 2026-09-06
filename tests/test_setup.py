@@ -1,16 +1,12 @@
 import unittest
 from urllib.parse import parse_qs, urlparse
 
-from scripts.setup import (
-    SetupError,
-    _parse_twilio_number,  # pyright: ignore[reportPrivateUsage]
-    _twimlet_url,  # pyright: ignore[reportPrivateUsage]
-)
+from scripts.twilio import TwilioError, TwilioNumber, build_voice_url
 
 
 class SetupTest(unittest.TestCase):
     def test_twilio_route(self) -> None:
-        number = _parse_twilio_number(
+        number = TwilioNumber.from_api_response(
             {
                 "incoming_phone_numbers": [
                     {"sid": "PN01234567890123456789012345678901", "trunk_sid": "TKold"}
@@ -18,12 +14,12 @@ class SetupTest(unittest.TestCase):
             }
         )
         self.assertEqual(number.trunk_sid, "TKold")
-        twiml = parse_qs(urlparse(_twimlet_url("my-agent", "my-org")).query)["Twiml"][0]
+        twiml = parse_qs(urlparse(build_voice_url("my-agent", "my-org")).query)["Twiml"][0]
         self.assertIn('value="my-agent.my-org"', twiml)
 
     def test_rejects_ambiguous_number(self) -> None:
-        with self.assertRaises(SetupError):
-            _parse_twilio_number({"incoming_phone_numbers": []})
+        with self.assertRaises(TwilioError):
+            TwilioNumber.from_api_response({"incoming_phone_numbers": []})
 
 
 if __name__ == "__main__":

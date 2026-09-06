@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import cast
 
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.adapters.schemas.tools_schema import ToolsSchema
@@ -25,6 +26,9 @@ class CallTools:
     surveyor_message: str
 
     def schema(self) -> ToolsSchema:
+        enquiry_schema = Enquiry.model_json_schema()
+        properties = cast(dict[str, object], enquiry_schema["properties"])
+        required = cast(list[str], enquiry_schema["required"])
         return ToolsSchema(
             standard_tools=[
                 FunctionSchema(
@@ -42,12 +46,8 @@ class CallTools:
                         "Email a completed non-surveyor enquiry after collecting property type, "
                         "required service, and full property address."
                     ),
-                    properties={
-                        "property_type": {"type": "string"},
-                        "service": {"type": "string"},
-                        "address": {"type": "string"},
-                    },
-                    required=["property_type", "service", "address"],
+                    properties=properties,
+                    required=required,
                 ),
                 FunctionSchema(
                     name="end_call",

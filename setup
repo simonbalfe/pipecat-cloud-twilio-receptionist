@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-exec uv run python scripts/setup.py "$@"
+exec uv run python -m scripts.setup "$@"
